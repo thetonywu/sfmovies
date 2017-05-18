@@ -1,19 +1,35 @@
 'use strict';
 
-const Controller   = require('../../../../lib/plugins/features/movies/controller');
-const Knex         = require('../../../../lib/libraries/knex');
-const Movie        = require('../../../../lib/models/movie');
-const MovieFactory = require('../../../factories/movie');
+const Bluebird = require('bluebird');
+
+const Controller      = require('../../../../lib/plugins/features/movies/controller');
+const Knex            = require('../../../../lib/libraries/knex');
+const LocationFactory = require('../../../factories/location');
+const Movie           = require('../../../../lib/models/movie');
+const MovieFactory    = require('../../../factories/movie');
 
 const movie1 = MovieFactory.build({ name: 'Star Trek', release_year: 1982 });
 const movie2 = MovieFactory.build({ name: 'Star Trek 2', release_year: 1984 });
 const movie3 = MovieFactory.build({ name: 'Star Trok', release_year: 1986 });
 
+const location1 = LocationFactory.build({ name: 'Hayes Valley' });
+
 describe('movie controller', () => {
 
   beforeEach(() => {
-    return Knex.raw('TRUNCATE movies CASCADE')
-    .then(() => Knex('movies').insert([movie1, movie2, movie3]));
+    return Bluebird.all([
+      Knex.raw('TRUNCATE movies CASCADE'),
+      Knex.raw('ALTER SEQUENCE movies_id_seq RESTART'),
+      Knex.raw('TRUNCATE locations CASCADE'),
+      Knex.raw('ALTER SEQUENCE locations_id_seq RESTART'),
+      Knex.raw('TRUNCATE locations_movies CASCADE')
+    ])
+    .then(() => {
+      return Bluebird.all([
+        Knex('movies').insert([movie1, movie2, movie3]),
+        Knex('locations').insert([location1])
+      ]);
+    });
   });
 
   describe('create', () => {
@@ -91,6 +107,26 @@ describe('movie controller', () => {
       return Controller.list(payload)
       .then((movies) => {
         expect(movies).to.have.length(3);
+      });
+    });
+
+  });
+
+  describe('add_location', () => {
+
+    it('associates a location with a movie', () => {
+      const payload = { location: 1 };
+
+      return Controller.addLocation(1, payload)
+      .then((movie) => {
+        expect(movie.get('id')).to.eql(1);
+
+        return new Movie({ id: 1 }).fetch({
+          withRelated: ['locations']
+        });
+      })
+      .then((movie) => {
+        expect(movie.related('locations').at(0).id).to.eql(1);
       });
     });
 
