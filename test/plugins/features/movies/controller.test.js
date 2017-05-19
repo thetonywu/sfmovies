@@ -23,4 +23,19 @@ describe('movie controller', () => {
 
   });
 
+  describe('get', () => {
+
+    it('gets movies prior to a given release_year', () => {
+      const payload = { release_year: 1984 };
+
+      return Controller.get(payload)
+      .then((json) => {
+        expect(json).to.not.be.null;
+
+        return json;
+      });
+    });
+
+  });
+
 });

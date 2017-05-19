@@ -18,6 +18,17 @@ describe('movies integration', () => {
       });
     });
 
+    it('gets movies prior to a release_year', () => {
+      return Movies.inject({
+        url: '/movies?release_year=1980',
+        method: 'GET'
+      })
+      .then((response) => {
+        expect(response.statusCode).to.eql(200);
+        expect(response.result).not.to.be.null;
+      });
+    });
+
   });
 
 });
